@@ -1,100 +1,169 @@
+
 package es.headfon.headfones;
 
-import android.support.v7.app.AppCompatActivity;
+import android.content.Intent;
 import android.os.Bundle;
+import android.support.design.widget.Snackbar;
+import android.support.v4.content.ContextCompat;
+import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
+import android.view.View;
 
 import com.spotify.android.appremote.api.ConnectionParams;
 import com.spotify.android.appremote.api.Connector;
 import com.spotify.android.appremote.api.SpotifyAppRemote;
+import com.spotify.sdk.android.authentication.AuthenticationClient;
+import com.spotify.sdk.android.authentication.AuthenticationRequest;
+import com.spotify.sdk.android.authentication.AuthenticationResponse;
 
-import com.spotify.protocol.client.Subscription;
-import com.spotify.protocol.types.PlayerState;
-import com.spotify.protocol.types.Track;
+import org.json.JSONException;
+import org.json.JSONObject;
 
-import com.android.volley.toolbox.Volley;
-import com.android.volley.toolbox.StringRequest;
-import com.android.volley.RequestQueue;
-import com.android.volley.Request;
-import com.android.volley.Response;
-import com.android.volley.VolleyError;
+import java.io.IOException;
+import java.util.Locale;
 
-import android.util.Log;
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final String CLIENT_ID = "91ee04ca22154f9784f79ee5189b0737";
-    private static final String REDIRECT_URI = "http://localhost:3004/auth/callback";
-    private SpotifyAppRemote mSpotifyAppRemote;
+    public static final String CLIENT_ID = "91ee04ca22154f9784f79ee5189b0737";
+    public static final String REDIRECT_URI = "http://localhost:3004/auth/callback";
+    public static final int AUTH_TOKEN_REQUEST_CODE = 0x10;
+    public static final int AUTH_CODE_REQUEST_CODE = 0x11;
+    private static SpotifyAppRemote mSpotifyAppRemote;
+
+    private final OkHttpClient mOkHttpClient = new OkHttpClient();
+    private String mAccessToken;
+    private String mAccessCode;
+    private Call mCall;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        getSupportActionBar().setTitle(String.format(
+                Locale.US, "Spotify Auth Sample %s", com.spotify.sdk.android.authentication.BuildConfig.VERSION_NAME));
+
+        connect(true);
     }
 
     @Override
-    protected void onStart() {
-        super.onStart();
-        // We will start writing our code here.
+    protected void onDestroy() {
+        cancelCall();
+        super.onDestroy();
+    }
 
-//        RequestQueue queue = Volley.newRequestQueue(this);
-//        String url ="https://api.spotify.com/v1/artists/1vCWHaC5f2uS3yhpwWbIA6/albums?album_type=SINGLE&offset=20&limit=10";
-//
-//        // Request a string response from the provided URL.
-//        StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
-//                new Response.Listener<String>() {
-//                    @Override
-//                    public void onResponse(String response) {
-//                        // Display the first 500 characters of the response string.
-//                        Log.d("MainActivity", "Response is: "+ response.substring(0,500));
-//                    }
-//                }, new Response.ErrorListener() {
-//                    @Override
-//                    public void onErrorResponse(VolleyError error) {
-//                        Log.d("MainActivity", "Volley Error");
-//                    }
-//                });
+    private void connect(boolean showAuthView) {
 
-        // Add the request to the RequestQueue.
-        // queue.add(stringRequest);
-        
-        // Set the connection parameters
-        ConnectionParams connectionParams =
+        SpotifyAppRemote.disconnect(mSpotifyAppRemote);
+
+        SpotifyAppRemote.connect(
+                getApplication(),
                 new ConnectionParams.Builder(CLIENT_ID)
                         .setRedirectUri(REDIRECT_URI)
-                        .showAuthView(true)
-                        .build();
+                        .showAuthView(showAuthView)
+                        .build(),
+                new Connector.ConnectionListener() {
+                    @Override
+                    public void onConnected(SpotifyAppRemote spotifyAppRemote) {
+                        mSpotifyAppRemote = spotifyAppRemote;
+                        // RemotePlayerActivity.this.onConnected();
 
-        SpotifyAppRemote.connect(this, connectionParams,
-            new Connector.ConnectionListener() {
+                        Log.d("connect: onConnected", "Connected! " + mSpotifyAppRemote.isConnected());
+                    }
 
+                    @Override
+                    public void onFailure(Throwable error) {
+                        // logMessage(String.format("Connection failed: %s", error));
+                        // RemotePlayerActivity.this.onDisconnected();
+                    }
+                });
+    }
+
+    public void onGetUserProfileClicked(View view) {
+        if (mAccessToken == null) {
+            final Snackbar snackbar = Snackbar.make(findViewById(R.id.activity_main), R.string.warning_need_token, Snackbar.LENGTH_SHORT);
+            snackbar.getView().setBackgroundColor(ContextCompat.getColor(this, R.color.colorAccent));
+            snackbar.show();
+            return;
+        }
+
+        final Request request = new Request.Builder()
+                .url("https://api.spotify.com/v1/me")
+                .addHeader("Authorization","Bearer " + mAccessToken)
+                .build();
+
+        cancelCall();
+        mCall = mOkHttpClient.newCall(request);
+
+        mCall.enqueue(new Callback() {
             @Override
-            public void onConnected(SpotifyAppRemote spotifyAppRemote) {
-                mSpotifyAppRemote = spotifyAppRemote;
-                Log.d("MainActivity", "Connected! Yay!");
-
-                // Now you can start interacting with App Remote
-                connected();
-
-                mSpotifyAppRemote.getPlayerApi().play("spotify:playlist:37i9dQZF1DWUYsleI0H271");
+            public void onFailure(Call call, IOException e) {
+                setResponse("Failed to fetch data: " + e);
             }
 
             @Override
-            public void onFailure(Throwable throwable) {
-                Log.e("MainActivity", throwable.getMessage(), throwable);
-
-                // Something went wrong when attempting to connect! Handle errors here
+            public void onResponse(Call call, Response response) throws IOException {
+                try {
+                    final JSONObject jsonObject = new JSONObject(response.body().string());
+                    setResponse(jsonObject.toString(3));
+                } catch (JSONException e) {
+                    setResponse("Failed to parse data: " + e);
+                }
             }
         });
     }
 
-    private void connected() {
-        // Then we will write some more code here.
+    public void onLoginClick(View view) {
+        final AuthenticationRequest request = getAuthenticationRequest(AuthenticationResponse.Type.TOKEN);
+        AuthenticationClient.openLoginActivity(this, AUTH_TOKEN_REQUEST_CODE, request);
+    }
+
+    public void goToSearchScreen() {
+        Intent intent = new Intent(this, SearchSpotifyActivity.class);
+        intent.putExtra("access_token", mAccessToken);
+        startActivity(intent);
+    }
+
+    private AuthenticationRequest getAuthenticationRequest(AuthenticationResponse.Type type) {
+        return new AuthenticationRequest.Builder(CLIENT_ID, type, REDIRECT_URI)
+                .setShowDialog(false)
+                .setScopes(new String[]{"user-read-email"})
+                .build();
     }
 
     @Override
-    protected void onStop() {
-        super.onStop();
-        // Aaand we will finish off here.
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        final AuthenticationResponse response = AuthenticationClient.getResponse(resultCode, data);
+
+        if (AUTH_TOKEN_REQUEST_CODE == requestCode) {
+            mAccessToken = response.getAccessToken();
+
+            goToSearchScreen();
+        } else if (AUTH_CODE_REQUEST_CODE == requestCode) {
+            mAccessCode = response.getCode();
+        }
+    }
+
+    private void setResponse(final String text) {
+//        runOnUiThread(new Runnable() {
+//            @Override
+//            public void run() {
+//                final TextView responseView = findViewById(R.id.response_text_view);
+//                responseView.setText(text);
+//            }
+//        });
+    }
+
+    private void cancelCall() {
+        if (mCall != null) {
+            mCall.cancel();
+        }
     }
 }
