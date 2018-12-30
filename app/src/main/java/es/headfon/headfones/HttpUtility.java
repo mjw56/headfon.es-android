@@ -15,7 +15,7 @@ import okhttp3.Response;
 
 public class HttpUtility {
     public interface DataCallbackInterface {
-        void onDataFetch(String result);
+        void onDataFetch(JSONObject result);
     }
 
     public static void makeRequest(String url, String access_token, final DataCallbackInterface callback) {
@@ -37,8 +37,7 @@ public class HttpUtility {
             public void onResponse(Call call, Response response) throws IOException {
                 try {
                     final JSONObject jsonObject = new JSONObject(response.body().string());
-                    // Log.d("onResponse: success", jsonObject.toString(3));
-                    callback.onDataFetch(jsonObject.toString(3));
+                    callback.onDataFetch(jsonObject);
                 } catch (JSONException e) {
                     Log.d("onResponse: failure", "Failed to parse data: " + e);
                 }

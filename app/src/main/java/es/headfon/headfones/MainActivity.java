@@ -94,7 +94,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         final Request request = new Request.Builder()
-                .url("https://api.spotify.com/v1/me")
+                .url(Constants.USER_PROFILE_URL)
                 .addHeader("Authorization","Bearer " + mAccessToken)
                 .build();
 

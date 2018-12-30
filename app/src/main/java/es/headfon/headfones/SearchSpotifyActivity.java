@@ -1,18 +1,15 @@
 package es.headfon.headfones;
+
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
 
-import okhttp3.Call;
-import okhttp3.OkHttpClient;
+import org.json.JSONObject;
 
 public class SearchSpotifyActivity extends AppCompatActivity {
     private String access_token;
-    private Call mCall;
-    private final OkHttpClient mOkHttpClient = new OkHttpClient();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -24,15 +21,16 @@ public class SearchSpotifyActivity extends AppCompatActivity {
 
     public void onSearchClick(View view) {
         view.clearFocus();
-        EditText search  = (EditText)findViewById(R.id.searchText);
-
+        EditText search  = findViewById(R.id.searchText);
         String url = "https://api.spotify.com/v1/search/?q=" + search.getText().toString() + "*&type=album,artist,playlist,track";
-
         HttpUtility http = new HttpUtility();
+
         http.makeRequest(url, access_token, new HttpUtility.DataCallbackInterface() {
             @Override
-            public void onDataFetch(String result) {
-                Log.d("data fetch result", result);
+            public void onDataFetch(JSONObject result) {
+                Intent intent = new Intent(getApplicationContext(), SearchResultsActivity.class);
+                intent.putExtra("search_results", result.toString());
+                startActivity(intent);
             }
         });
 
