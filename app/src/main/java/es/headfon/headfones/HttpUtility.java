@@ -14,7 +14,11 @@ import okhttp3.Request;
 import okhttp3.Response;
 
 public class HttpUtility {
-    public static void makeRequest(String url, String access_token, final SearchSpotifyActivity.CallbackInterface callback) {
+    public interface DataCallbackInterface {
+        void onDataFetch(String result);
+    }
+
+    public static void makeRequest(String url, String access_token, final DataCallbackInterface callback) {
         final Request request = new Request.Builder()
                 .url(url)
                 .addHeader("Authorization","Bearer " + access_token)

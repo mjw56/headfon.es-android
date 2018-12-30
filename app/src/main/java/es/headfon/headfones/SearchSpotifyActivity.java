@@ -14,10 +14,6 @@ public class SearchSpotifyActivity extends AppCompatActivity {
     private Call mCall;
     private final OkHttpClient mOkHttpClient = new OkHttpClient();
 
-    public interface CallbackInterface {
-        void onDataFetch(String result);
-    }
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -33,7 +29,7 @@ public class SearchSpotifyActivity extends AppCompatActivity {
         String url = "https://api.spotify.com/v1/search/?q=" + search.getText().toString() + "*&type=album,artist,playlist,track";
 
         HttpUtility http = new HttpUtility();
-        http.makeRequest(url, access_token, new CallbackInterface() {
+        http.makeRequest(url, access_token, new HttpUtility.DataCallbackInterface() {
             @Override
             public void onDataFetch(String result) {
                 Log.d("data fetch result", result);
