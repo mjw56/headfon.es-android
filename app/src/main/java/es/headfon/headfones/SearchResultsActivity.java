@@ -38,12 +38,13 @@ public class SearchResultsActivity extends AppCompatActivity {
     }
 
     public void populateListView(JSONArray items) {
+        // TODO: re-think structure to include other types
         allItems = items;
-        String[] itemname = new String[items.length()];
+        String[] itemNames = new String[items.length()];
         try {
             for (int i = 0; i < items.length(); i++) {
                 JSONObject item = items.getJSONObject(i);
-                itemname[i] = item.getString("name");
+                itemNames[i] = item.getString("name");
             }
         } catch (JSONException e) {
             Log.d("error parsing json", e.toString());
@@ -54,7 +55,7 @@ public class SearchResultsActivity extends AppCompatActivity {
             this,
             R.layout.search_results_list,
             R.id.item_name,
-            itemname
+            itemNames
         ));
 
         // Set an item click listener for ListView
