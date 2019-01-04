@@ -6,7 +6,6 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
 import com.spotify.android.appremote.api.SpotifyAppRemote;
@@ -14,6 +13,8 @@ import com.spotify.android.appremote.api.SpotifyAppRemote;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import java.util.ArrayList;
 
 
 public class SearchResultsActivity extends AppCompatActivity {
@@ -40,22 +41,22 @@ public class SearchResultsActivity extends AppCompatActivity {
     public void populateListView(JSONArray items) {
         // TODO: re-think structure to include other types
         allItems = items;
-        String[] itemNames = new String[items.length()];
+        ArrayList<SearchAlbumListing> albums = new ArrayList<>();
         try {
             for (int i = 0; i < items.length(); i++) {
                 JSONObject item = items.getJSONObject(i);
-                itemNames[i] = item.getString("name");
+                JSONArray images = item.getJSONArray("images");
+                JSONObject image = images.getJSONObject(0);
+                albums.add(new SearchAlbumListing(item.getString("name"), image.getString("url")));
             }
         } catch (JSONException e) {
             Log.d("error parsing json", e.toString());
         }
 
-        lv = (ListView)findViewById(R.id.list);
-        lv.setAdapter(new ArrayAdapter<String>(
+        lv = findViewById(R.id.list);
+        lv.setAdapter(new SearchAlbumAdapter(
             this,
-            R.layout.search_results_list,
-            R.id.item_name,
-            itemNames
+            albums
         ));
 
         // Set an item click listener for ListView
