@@ -46,7 +46,7 @@ class SearchResultsActivity : AppCompatActivity() {
             Log.d("error parsing json", e.toString())
         }
 
-        lv = findViewById(R.id.list)
+        lv = findViewById<ListView>(R.id.list)
         lv!!.adapter = SearchAlbumAdapter(
                 this,
                 albums
@@ -57,7 +57,7 @@ class SearchResultsActivity : AppCompatActivity() {
             // Get the selected item text from ListView
             try {
                 val uri = allItems.getJSONObject(position).getString("uri")
-                val remote = MainActivity.spotifyAppRemote
+                val remote = MainActivity.getSpotifyAppRemote()
                 remote.playerApi.play(uri)
             } catch (e: JSONException) {
                 Log.d("JSON Parse Failed", e.toString())
