@@ -7,24 +7,23 @@ import android.widget.AdapterView
 import android.widget.ListView
 import org.json.JSONArray
 import org.json.JSONException
-import org.json.JSONObject
 import java.util.*
 
 
-class SearchResultsActivity : AppCompatActivity() {
+class AlbumDetailsActivity : AppCompatActivity() {
     private var lv: ListView? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_search_results)
+        setContentView(R.layout.activity_album_details)
         val intent = intent
 
         // parse the passed search results
         try {
-            val searchResults = JSONObject(intent.extras!!.getString("search_results"))
-            val albums = searchResults.getJSONObject("albums")
-            val albumList = albums.getJSONArray("items")
-            populateListView(albumList)
+            // val searchResults = JSONObject(intent.extras!!.getString("album_id"))
+//            val albums = searchResults.getJSONObject("albums")
+//            val albumList = albums.getJSONArray("items")
+//            populateListView(albumList)
         } catch (e: JSONException) {
             Log.d("Error parsing JSON", e.toString())
         }
@@ -56,12 +55,9 @@ class SearchResultsActivity : AppCompatActivity() {
         lv!!.onItemClickListener = AdapterView.OnItemClickListener { parent, view, position, id ->
             // Get the selected item text from ListView
             try {
-                val id = allItems.getJSONObject(position).getString("id")
-                Log.d("clicked on the album", id);
-
-                // TODO: call to get the album and then pass that data to the next view
-//                val remote = MainActivity.getSpotifyAppRemote()
-//                remote.playerApi.play(uri)
+                val uri = allItems.getJSONObject(position).getString("uri")
+                val remote = MainActivity.spotifyAppRemote
+                remote.playerApi.play(uri)
             } catch (e: JSONException) {
                 Log.d("JSON Parse Failed", e.toString())
             }

@@ -15,8 +15,7 @@ class SearchSpotifyActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_search_spotify)
-        val intent = intent
-        access_token = intent.extras!!.getString("access_token")
+        access_token = MainActivity.appState.accessToken
     }
 
     override fun dispatchKeyEvent(e: KeyEvent): Boolean {
